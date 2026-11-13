@@ -1,0 +1,12 @@
+{
+  "name": "sea-gym",
+  "version": "2.0.0",
+  "description": "SEAGYM – professional gym website and membership management system",
+  "main": "server.js",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test.js"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Membership – SEAGYM</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a href="/" class="logo">SEA<span>GYM</span></a>
+      <nav class="nav-main">
+        <a href="/">Website</a>
+        <span id="whoami" class="hint" style="padding:.45rem .75rem"></span>
+        <button id="logout" class="btn alt sm">Sign out</button>
+      </nav>
+    </div>
+  </header>
+  <main class="section" id="main">
+    <div class="wrap" style="max-width:720px">
+      <h1>My membership</h1>
+      <div id="loading" class="card">Loading your membership…</div>
+      <div id="content" hidden>
+        <div class="member-hero">
+          <p class="mid" id="m-id"></p>
+          <h2 id="m-name" style="margin:.25rem 0"></h2>
+          <p><span id="m-status" class="badge"></span> · <span id="m-type"></span></p>
+          <p class="hint" id="m-dates"></p>
+        </div>
+        <section class="card" style="margin-bottom:1.25rem">
+          <h2>Profile</h2>
+          <dl class="dl" id="profile-dl"></dl>
+        </section>
+        <section class="card">
+          <h2>Update contact details</h2>
+          <p class="hint">You can update phone, email, and emergency contact. Membership plan and status are managed by staff.</p>
+          <form id="profile-form" class="grid" novalidate>
+            <div id="prof-summary" class="error summary full" role="alert" hidden></div>
+            <div class="field"><label for="p_phone">Phone</label><input id="p_phone" name="phone" type="tel"><span class="error" id="perr-phone"></span></div>
+            <div class="field"><label for="p_email">Email</label><input id="p_email" name="email" type="email"><span class="error" id="perr-email"></span></div>
+            <div class="field"><label for="p_ec_name">Emergency contact name</label><input id="p_ec_name" name="ec_name"></div>
+            <div class="field"><label for="p_ec_phone">Emergency contact phone</label><input id="p_ec_phone" name="ec_phone" type="tel"><span class="error" id="perr-ec_phone"></span></div>
+            <div class="full"><button class="btn" type="submit">Save changes</button></div>
+          </form>
+        </section>
+      </div>
+      <div id="error" class="card" hidden style="border-color:var(--danger)"></div>
+    </div>
+  </main>
+  <script>
+  const $ = s => document.querySelector(s);
+  async function api(url, method = 'GET', body) {
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.message || 'Error'), { errors: data.errors || {}, status: res.status });
+    return data;
+  }
+  async function init() {
+    try {
+      const { user } = await api('/api/me');
+      if (user.role !== 'member') { location.href = user.role === 'admin' ? '/dashboard' : '/login'; return; }
+      $('#whoami').textContent = user.username;
+      const mem = await api('/api/my-membership');
+      $('#loading').hidden = true;
+      $('#content').hidden = false;
+      $('#m-id').textContent = mem.member_id;
+      $('#m-name').textContent = mem.full_name;
+      const badge = $('#m-status');
+      badge.textContent = mem.status;
+      badge.className = 'badge s-' + mem.status.replace(' ', '-');
+      $('#m-type').textContent = mem.type + (mem.price ? ` · ${mem.price} EGP` : '');
+      const rem = mem.remaining_days < 0 ? `${-mem.remaining_days} days overdue` : `${mem.remaining_days} days remaining`;
+      $('#m-dates').textContent = `Start ${mem.start_date} · End ${mem.end_date} · ${rem}`;
+      const dl = $('#profile-dl');
+      dl.innerHTML = '';
+      const rows = [['Email', mem.email || '—'], ['Phone', mem.phone], ['Date of birth', mem.dob], ['Gender', mem.gender],
+        ['Emergency contact', mem.ec_name ? `${mem.ec_name} (${mem.ec_phone})` : '—']];
+      rows.forEach(([k, v]) => { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); });
+      $('#p_phone').value = mem.phone || '';
+      $('#p_email').value = mem.email || '';
+      $('#p_ec_name').value = mem.ec_name || '';
+      $('#p_ec_phone').value = mem.ec_phone || '';
+    } catch (e) {
+      if (e.status === 401) { location.href = '/login'; return; }
+      $('#loading').hidden = true;
+      $('#error').hidden = false;
+      $('#error').textContent = e.message || 'Could not load membership.';
+    }
+  }
+  $('#logout').addEventListener('click', async () => {
+    await api('/api/logout', 'POST');
+    location.href = '/login';
+  });
+  $('#profile-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const summary = $('#prof-summary');
+    summary.hidden = true;
+    try {
+      const body = {
+        phone: $('#p_phone').value.trim(),
+        email: $('#p_email').value.trim(),
+        ec_name: $('#p_ec_name').value.trim(),
+        ec_phone: $('#p_ec_phone').value.trim()
+      };
+      await api('/api/my-profile', 'PUT', body);
+      summary.className = 'error summary full'; // reuse
+      summary.style.background = 'rgba(62,207,142,.12)';
+      summary.style.color = 'var(--success)';
+      summary.textContent = 'Details updated.';
+      summary.hidden = false;
+      setTimeout(() => location.reload(), 800);
+    } catch (ex) {
+      summary.style.background = '';
+      summary.style.color = '';
+      summary.textContent = ex.message;
+      summary.hidden = false;
+      if (ex.errors) Object.entries(ex.errors).forEach(([k, v]) => {
+        const el = document.getElementById('perr-' + k);
+        if (el) el.textContent = v;
+      });
+    }
+  });
+  init();
+  </script>
+</body>
+</html>

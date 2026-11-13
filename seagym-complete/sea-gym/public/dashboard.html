@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard – SEAGYM</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+  <div class="app-shell" id="app" hidden>
+    <aside class="side-nav">
+      <a href="/" class="logo">SEA<span>GYM</span></a>
+      <nav aria-label="Admin">
+        <button class="nav" data-view="dashboard" aria-current="page">Dashboard</button>
+        <button class="nav" data-view="register">Register member</button>
+        <button class="nav" data-view="members">Members</button>
+      </nav>
+      <div style="margin-top:2rem;padding:0 .5rem">
+        <p class="hint" id="whoami"></p>
+        <button id="logout" class="btn alt sm" style="width:100%;margin-top:.5rem">Sign out</button>
+      </div>
+    </aside>
+    <div class="app-main">
+      <div class="app-top">
+        <h1 id="page-title" style="margin:0;font-size:1.5rem">Dashboard</h1>
+        <button class="btn alt sm" id="menu-toggle" hidden>Menu</button>
+      </div>
+
+      <section id="v-dashboard">
+        <ul id="stat-cards" class="stat-cards" aria-label="Statistics"></ul>
+        <div class="two">
+          <section class="card"><h2>Recent registrations</h2><ul id="recent" class="plain"></ul></section>
+          <section class="card"><h2>Expiring soon</h2><ul id="alerts" class="plain"></ul></section>
+        </div>
+        <section class="card" style="margin-top:1.25rem"><h2>Membership distribution</h2><ul id="dist" class="plain"></ul></section>
+      </section>
+
+      <section id="v-register" hidden>
+        <form id="reg-form" class="card grid" novalidate>
+          <div id="reg-summary" class="error summary full" role="alert" hidden></div>
+          <div class="field"><label for="full_name">Full name *</label><input id="full_name" name="full_name" required><span class="error" id="err-full_name"></span></div>
+          <div class="field"><label for="national_id">National ID / passport *</label><input id="national_id" name="national_id" required><span class="error" id="err-national_id"></span></div>
+          <div class="field"><label for="phone">Phone *</label><input id="phone" name="phone" type="tel" required><span class="error" id="err-phone"></span></div>
+          <div class="field"><label for="email">Email</label><input id="email" name="email" type="email"><span class="error" id="err-email"></span></div>
+          <div class="field"><label for="dob">Date of birth *</label><input id="dob" name="dob" type="date" required><span class="error" id="err-dob"></span></div>
+          <fieldset class="field"><legend>Gender *</legend>
+            <label class="inline"><input type="radio" name="gender" value="Female"> Female</label>
+            <label class="inline"><input type="radio" name="gender" value="Male"> Male</label>
+            <label class="inline"><input type="radio" name="gender" value="Other"> Other</label>
+            <span class="error" id="err-gender"></span>
+          </fieldset>
+          <div class="field"><label for="type">Membership type *</label>
+            <select id="type" name="type" required>
+              <option value="">Select…</option>
+              <option>Monthly</option><option>3 Months</option><option>6 Months</option><option>Yearly</option>
+            </select><span class="error" id="err-type"></span>
+          </div>
+          <div class="field"><label for="start_date">Start date *</label><input id="start_date" name="start_date" type="date" required><span class="error" id="err-start_date"></span></div>
+          <div class="field full"><label class="inline"><input type="checkbox" id="has-ec"> Add emergency contact</label></div>
+          <fieldset id="ec" class="full grid" hidden>
+            <legend>Emergency contact</legend>
+            <div class="field"><label for="ec_name">Name</label><input id="ec_name" name="ec_name"><span class="error" id="err-ec_name"></span></div>
+            <div class="field"><label for="ec_phone">Phone</label><input id="ec_phone" name="ec_phone" type="tel"><span class="error" id="err-ec_phone"></span></div>
+          </fieldset>
+          <div class="field full"><label for="notes">Notes</label><textarea id="notes" name="notes" rows="2"></textarea></div>
+          <div class="full row">
+            <button class="btn" id="reg-btn">Register member</button>
+            <button type="reset" class="btn alt">Clear</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="v-members" hidden>
+        <form id="filters" class="row card" style="margin-bottom:1rem;padding:1rem">
+          <div class="field" style="margin:0;flex:1;min-width:160px"><label for="q">Search</label><input id="q" type="search" placeholder="Name, ID, email, phone"></div>
+          <div class="field" style="margin:0"><label for="f-status">Status</label>
+            <select id="f-status"><option value="">All</option><option>Active</option><option>Expiring Soon</option><option>Expired</option><option>Frozen</option><option>Inactive</option></select>
+          </div>
+          <button class="btn" style="align-self:end">Filter</button>
+        </form>
+        <p id="count" class="hint"></p>
+        <div style="overflow-x:auto">
+          <table id="tbl"><thead><tr id="thead-row"></tr></thead><tbody id="rows"></tbody></table>
+        </div>
+        <nav class="row" style="margin-top:1rem" aria-label="Pagination">
+          <button class="btn alt sm" id="prev">Previous</button>
+          <span id="pageinfo" class="hint"></span>
+          <button class="btn alt sm" id="next">Next</button>
+        </nav>
+      </section>
+    </div>
+  </div>
+
+  <dialog id="detail">
+    <form id="edit-form" method="dialog" novalidate>
+      <h2 id="d-title">Member details</h2>
+      <div id="d-summary" class="error" role="alert" hidden></div>
+      <dl id="d-info" class="dl"></dl>
+      <div class="grid">
+        <div class="field"><label for="e_full_name">Full name</label><input id="e_full_name" name="full_name"><span class="error" id="eerr-full_name"></span></div>
+        <div class="field"><label for="e_national_id">National ID</label><input id="e_national_id" name="national_id"><span class="error" id="eerr-national_id"></span></div>
+        <div class="field"><label for="e_phone">Phone</label><input id="e_phone" name="phone" type="tel"><span class="error" id="eerr-phone"></span></div>
+        <div class="field"><label for="e_email">Email</label><input id="e_email" name="email" type="email"><span class="error" id="eerr-email"></span></div>
+        <div class="field"><label for="e_dob">Date of birth</label><input id="e_dob" name="dob" type="date"><span class="error" id="eerr-dob"></span></div>
+        <div class="field"><label for="e_gender">Gender</label><select id="e_gender" name="gender"><option>Female</option><option>Male</option><option>Other</option></select></div>
+        <div class="field"><label for="e_type">Membership type</label><select id="e_type" name="type"><option>Monthly</option><option>3 Months</option><option>6 Months</option><option>Yearly</option></select></div>
+        <div class="field"><label for="e_ec_name">Emergency name</label><input id="e_ec_name" name="ec_name"></div>
+        <div class="field"><label for="e_ec_phone">Emergency phone</label><input id="e_ec_phone" name="ec_phone" type="tel"></div>
+        <div class="field full"><label for="e_notes">Notes</label><textarea id="e_notes" name="notes" rows="2"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:1rem;flex-wrap:wrap">
+        <button class="btn" value="save">Save changes</button>
+        <button type="button" class="btn alt" id="d-renew">Renew</button>
+        <button type="button" class="btn alt" id="d-freeze">Freeze / Unfreeze</button>
+        <button type="button" class="btn alt" id="d-deactivate">Deactivate</button>
+        <button type="button" class="btn danger" id="d-delete">Delete</button>
+        <button type="button" class="btn alt" id="d-close">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>
